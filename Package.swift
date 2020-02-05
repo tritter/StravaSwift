@@ -11,7 +11,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/Alamofire/Alamofire.git", from: "4.9.0"),
         .package(url: "https://github.com/tritter/SwiftyJSON.git",
-                 .branch("xcode11-fix")),
+                 .branch("master")),
     ],
     targets: [
         .target(name: "StravaSwift", dependencies: ["Alamofire", "SwiftyJSON"]),

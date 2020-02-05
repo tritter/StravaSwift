@@ -14,8 +14,8 @@
         "package": "SwiftyJSON",
         "repositoryURL": "https://github.com/tritter/SwiftyJSON.git",
         "state": {
-          "branch": "xcode11-fix",
-          "revision": "4f765e016fac6630c5ec3936cbe4657da749393f",
+          "branch": "master",
+          "revision": "0e137e8a7a141ab022fc383f353f8d251b7f6de9",
           "version": null
         }
       }
