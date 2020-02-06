@@ -136,9 +136,7 @@ extension DownloadRequest {
 
             do {
                 let data = try Data(contentsOf: fileURL)
-                let JSONResponseSerializer = DataRequest.jsonResponseSerializer(options: .allowFragments)
-                let json = JSONResponseSerializer.serializeResponse(request, response, data, error)
-                let object = T.init(JSON(json))
+                let object = T.init(JSON(data))
                 return .success(object)
             } catch {
                 return .failure(AFError.responseSerializationFailed(reason: .inputFileReadFailed(at: fileURL)))
