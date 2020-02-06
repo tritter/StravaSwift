@@ -123,13 +123,12 @@ extension DataRequest {
 
 extension DownloadRequest {
     
-    static func StravaSerializer<T: Strava>(
-        options: JSONSerialization.ReadingOptions = .allowFragments)
+    static func StravaSerializer<T: Strava>()
         -> DownloadResponseSerializer<T>
     {
         return DownloadResponseSerializer { request, response, fileURL, error in
             guard error == nil else { return .failure(error!) }
-
+            
             guard let fileURL = fileURL else {
                 return .failure(AFError.responseSerializationFailed(reason: .inputFileNil))
             }
@@ -137,7 +136,33 @@ extension DownloadRequest {
             do {
                 let data = try Data(contentsOf: fileURL)
                 let object = T.init(JSON(data))
+                //Try to cleanup after ourselves
+                try? FileManager.default.removeItem(at: fileURL)
                 return .success(object)
+            } catch {
+                return .failure(AFError.responseSerializationFailed(reason: .inputFileReadFailed(at: fileURL)))
+            }
+        }
+    }
+    
+    static func StravaArraySerializer<T: Strava>()
+        -> DownloadResponseSerializer<[T]>
+    {
+        return DownloadResponseSerializer { request, response, fileURL, error in
+            guard error == nil else { return .failure(error!) }
+            
+            guard let fileURL = fileURL else {
+                return .failure(AFError.responseSerializationFailed(reason: .inputFileNil))
+            }
+
+            do {
+                let data = try Data(contentsOf: fileURL)
+                var results: [T] = []
+                JSON(data).array?.forEach {
+                    results.append(T.init($0))
+                }                //Try to cleanup after ourselves
+                try? FileManager.default.removeItem(at: fileURL)
+                return .success(results)
             } catch {
                 return .failure(AFError.responseSerializationFailed(reason: .inputFileReadFailed(at: fileURL)))
             }
@@ -149,7 +174,7 @@ extension DownloadRequest {
 extension DownloadRequest {
     
     @discardableResult
-    public func responseStravaJSON<T: Strava>(
+    public func downloadStravaResponse<T: Strava>(
         queue: DispatchQueue? = nil,
         options: JSONSerialization.ReadingOptions = .allowFragments,
         completionHandler: @escaping (DownloadResponse<T>) -> Void)
@@ -157,7 +182,21 @@ extension DownloadRequest {
     {
         return response(
             queue: queue,
-            responseSerializer: DownloadRequest.StravaSerializer(options: options),
+            responseSerializer: DownloadRequest.StravaSerializer(),
+            completionHandler: completionHandler
+        )
+    }
+    
+    @discardableResult
+    public func downloadStravaResponseArray<T: Strava>(
+        queue: DispatchQueue? = nil,
+        options: JSONSerialization.ReadingOptions = .allowFragments,
+        completionHandler: @escaping (DownloadResponse<[T]>) -> Void)
+        -> Self
+    {
+        return response(
+            queue: queue,
+            responseSerializer: DownloadRequest.StravaArraySerializer(),
             completionHandler: completionHandler
         )
     }
