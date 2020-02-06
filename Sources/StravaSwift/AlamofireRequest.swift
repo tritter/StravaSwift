@@ -120,3 +120,48 @@ extension DataRequest {
         }
     }
 }
+
+extension DownloadRequest {
+    
+    static func StravaSerializer<T: Strava>(
+        options: JSONSerialization.ReadingOptions = .allowFragments)
+        -> DownloadResponseSerializer<T>
+    {
+        return DownloadResponseSerializer { request, response, fileURL, error in
+            guard error == nil else { return .failure(error!) }
+
+            guard let fileURL = fileURL else {
+                return .failure(AFError.responseSerializationFailed(reason: .inputFileNil))
+            }
+
+            do {
+                let data = try Data(contentsOf: fileURL)
+                let JSONResponseSerializer = DataRequest.jsonResponseSerializer(options: .allowFragments)
+                let json = JSONResponseSerializer.serializeResponse(request, response, data, error)
+                let object = T.init(JSON(json))
+                return .success(object)
+            } catch {
+                return .failure(AFError.responseSerializationFailed(reason: .inputFileReadFailed(at: fileURL)))
+            }
+        }
+    }
+    
+}
+
+extension DownloadRequest {
+    
+    @discardableResult
+    public func responseStravaJSON<T: Strava>(
+        queue: DispatchQueue? = nil,
+        options: JSONSerialization.ReadingOptions = .allowFragments,
+        completionHandler: @escaping (DownloadResponse<T>) -> Void)
+        -> Self
+    {
+        return response(
+            queue: queue,
+            responseSerializer: DownloadRequest.StravaSerializer(options: options),
+            completionHandler: completionHandler
+        )
+    }
+}
+

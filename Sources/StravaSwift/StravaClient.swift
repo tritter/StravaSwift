@@ -226,6 +226,22 @@ extension StravaClient {
             result(.failure(error))
         }
     }
+    
+    public func refreshAccessTokenDownloadRequest(manager: SessionManager = SessionManager.default, _ refreshToken: String, result: @escaping AuthorizationHandler) {
+        do {
+            try oauthDownloadRequest(manager, Router.refresh(refreshToken: refreshToken))?.responseStravaJSON { [weak self] (response: DownloadResponse<OAuthToken>) in
+                guard let self = self else { return }
+                if let token = response.result.value {
+                    self.config?.delegate.set(token)
+                    result(.success(token))
+                } else {
+                    result(.failure(self.generateError(failureReason: "No valid token", response: nil)))
+                }
+            }
+        } catch let error as NSError {
+            result(.failure(error))
+        }
+    }
 }
 
 
@@ -234,6 +250,21 @@ extension StravaClient {
 
 extension StravaClient {
 
+    public func download<T: Strava>(manager: SessionManager = SessionManager.default, _ route: Router, result: @escaping (((DownloadResponse<T>)?) -> Void), failure: @escaping (NSError) -> Void) {
+        do {
+            try oauthDownloadRequest(manager, route)?.responseStravaJSON { (response: DownloadResponse<T>) in
+                if let statusCode = response.response?.statusCode, (400..<500).contains(statusCode) {
+                    failure(self.generateError(failureReason: "Strava API Error", response: response.response))
+                } else {
+                    result(response)
+                }
+                result(response)
+            }
+        } catch let error as NSError {
+            failure(error)
+        }
+    }
+    
     public func upload<T: Strava>(manager: SessionManager = SessionManager.default, _ route: Router, upload: UploadData, result: @escaping (((T)?) -> Void), failure: @escaping (NSError) -> Void) {
         do {
             try oauthUpload(manager, URLRequest: route.asURLRequest(), upload: upload) { (response: DataResponse<T>) in
@@ -316,8 +347,12 @@ extension StravaClient {
 
     fileprivate func oauthRequest(_ manager: SessionManager, _ urlRequest: URLRequestConvertible) throws -> DataRequest? {
         checkConfiguration()
-
         return manager.request(urlRequest)
+    }
+    
+    fileprivate func oauthDownloadRequest(_ manager: SessionManager, _ urlRequest: URLRequestConvertible) throws -> DownloadRequest?  {
+        checkConfiguration()
+        return manager.download(urlRequest)
     }
 
     fileprivate func oauthUpload<T: Strava>(_ manager: SessionManager, URLRequest: URLRequestConvertible, upload: UploadData, completion: @escaping (DataResponse<T>) -> ()) {
