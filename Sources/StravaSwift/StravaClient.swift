@@ -235,7 +235,7 @@ extension StravaClient {
                     self.config?.delegate.set(token)
                     result(.success(token))
                 } else {
-                    result(.failure(self.generateError(failureReason: "No valid token", response: response)))
+                    result(.failure(self.generateError(failureReason: "No valid token", response: response.response)))
                 }
             }
         } catch let error as NSError {
