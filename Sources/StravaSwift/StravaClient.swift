@@ -231,7 +231,6 @@ extension StravaClient {
         do {
             try oauthDownloadRequest(manager, Router.refresh(refreshToken: refreshToken))?.downloadStravaResponse { [weak self] (response: DownloadResponse<OAuthToken>) in
                 guard let self = self else { return }
-                log.info("Received download response: \(response)")
                 if let token = response.result.value {
                     self.config?.delegate.set(token)
                     result(.success(token))
