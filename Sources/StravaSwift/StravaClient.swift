@@ -227,9 +227,9 @@ extension StravaClient {
         }
     }
     
-    public func refreshAccessTokenDownloadRequest(manager: SessionManager = SessionManager.default, _ refreshToken: String, result: @escaping AuthorizationHandler) {
+    public func refreshAccessTokenDownloadRequest(manager: SessionManager = SessionManager.default, queue: DispatchQueue = DispatchQueue.main, _ refreshToken: String, result: @escaping AuthorizationHandler) {
         do {
-            try oauthDownloadRequest(manager, Router.refresh(refreshToken: refreshToken))?.downloadStravaResponse { [weak self] (response: DownloadResponse<OAuthToken>) in
+            try oauthDownloadRequest(manager, Router.refresh(refreshToken: refreshToken))?.downloadStravaResponse(queue: queue) { [weak self] (response: DownloadResponse<OAuthToken>) in
                 guard let self = self else { return }
                 if let token = response.result.value {
                     self.config?.delegate.set(token)
@@ -245,14 +245,13 @@ extension StravaClient {
 }
 
 
-
 //MARK: - Athlete
 
 extension StravaClient {
 
-    public func download<T: Strava>(manager: SessionManager = SessionManager.default, _ route: Router, result: @escaping (((DownloadResponse<T>)?) -> Void), failure: @escaping (NSError) -> Void) {
+    public func download<T: Strava>(manager: SessionManager = SessionManager.default, queue: DispatchQueue = DispatchQueue.main, _ route: Router, result: @escaping (((DownloadResponse<T>)?) -> Void), failure: @escaping (NSError) -> Void) {
         do {
-            try oauthDownloadRequest(manager, route)?.downloadStravaResponse { (response: DownloadResponse<T>) in
+            try oauthDownloadRequest(manager, route)?.downloadStravaResponse(queue: queue) { (response: DownloadResponse<T>) in
                 if let statusCode = response.response?.statusCode, (400..<500).contains(statusCode) {
                     failure(self.generateError(failureReason: "Strava API Error", response: response.response))
                 } else {
@@ -265,9 +264,9 @@ extension StravaClient {
         }
     }
     
-    public func download<T: Strava>(manager: SessionManager = SessionManager.default, _ route: Router, result: @escaping ((([T])?) -> Void), failure: @escaping (NSError) -> Void) {
+    public func download<T: Strava>(manager: SessionManager = SessionManager.default, queue: DispatchQueue = DispatchQueue.main, _ route: Router, result: @escaping ((([T])?) -> Void), failure: @escaping (NSError) -> Void) {
         do {
-            try oauthDownloadRequest(manager, route)?.downloadStravaResponseArray { (response: DownloadResponse<[T]>) in
+            try oauthDownloadRequest(manager, route)?.downloadStravaResponseArray(queue: queue) { (response: DownloadResponse<[T]>) in
                 
                 if let statusCode = response.response?.statusCode, (400..<500).contains(statusCode) {
                     failure(self.generateError(failureReason: "Strava API Error", response: response.response))
