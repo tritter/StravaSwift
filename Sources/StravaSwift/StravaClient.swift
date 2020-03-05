@@ -227,20 +227,8 @@ extension StravaClient {
         }
     }
     
-    public func refreshAccessTokenDownloadRequest(manager: SessionManager = SessionManager.default, queue: DispatchQueue = DispatchQueue.main, _ refreshToken: String, result: @escaping AuthorizationHandler) {
-        do {
-            try oauthDownloadRequest(manager, Router.refresh(refreshToken: refreshToken))?.downloadStravaResponse(queue: queue) { [weak self] (response: DownloadResponse<OAuthToken>) in
-                guard let self = self else { return }
-                if let token = response.result.value {
-                    self.config?.delegate.set(token)
-                    result(.success(token))
-                } else {
-                    result(.failure(self.generateError(failureReason: "No valid token", response: response.response)))
-                }
-            }
-        } catch let error as NSError {
-            result(.failure(error))
-        }
+    public func refreshAccessTokenDownloadRequest(manager: SessionManager = SessionManager.default, _ refreshToken: String) -> DownloadRequest? {
+        return download(manager: manager, Router.refresh(refreshToken: refreshToken))
     }
 }
 
@@ -249,35 +237,8 @@ extension StravaClient {
 
 extension StravaClient {
 
-    public func download<T: Strava>(manager: SessionManager = SessionManager.default, queue: DispatchQueue = DispatchQueue.main, _ route: Router, result: @escaping (((DownloadResponse<T>)?) -> Void), failure: @escaping (NSError) -> Void) {
-        do {
-            try oauthDownloadRequest(manager, route)?.downloadStravaResponse(queue: queue) { (response: DownloadResponse<T>) in
-                if let statusCode = response.response?.statusCode, (400..<500).contains(statusCode) {
-                    failure(self.generateError(failureReason: "Strava API Error", response: response.response))
-                } else {
-                    result(response)
-                }
-                result(response)
-            }
-        } catch let error as NSError {
-            failure(error)
-        }
-    }
-    
-    public func download<T: Strava>(manager: SessionManager = SessionManager.default, queue: DispatchQueue = DispatchQueue.main, _ route: Router, result: @escaping ((([T])?) -> Void), failure: @escaping (NSError) -> Void) {
-        do {
-            try oauthDownloadRequest(manager, route)?.downloadStravaResponseArray(queue: queue) { (response: DownloadResponse<[T]>) in
-                
-                if let statusCode = response.response?.statusCode, (400..<500).contains(statusCode) {
-                    failure(self.generateError(failureReason: "Strava API Error", response: response.response))
-                } else {
-                    result(response.result.value)
-                }
-                result(response.result.value)
-            }
-        } catch let error as NSError {
-            failure(error)
-        }
+    public func download(manager: SessionManager = SessionManager.default, _ route: Router) -> DownloadRequest?{
+        return oauthDownloadRequest(manager, route)
     }
     
     public func upload<T: Strava>(manager: SessionManager = SessionManager.default, _ route: Router, upload: UploadData, result: @escaping (((T)?) -> Void), failure: @escaping (NSError) -> Void) {
@@ -365,7 +326,7 @@ extension StravaClient {
         return manager.request(urlRequest)
     }
     
-    fileprivate func oauthDownloadRequest(_ manager: SessionManager, _ urlRequest: URLRequestConvertible) throws -> DownloadRequest?  {
+    fileprivate func oauthDownloadRequest(_ manager: SessionManager, _ urlRequest: URLRequestConvertible) -> DownloadRequest?  {
         checkConfiguration()
         let destination: DownloadRequest.DownloadFileDestination = { _, _ in
             let temporaryDirectoryURL = FileManager.default.temporaryDirectory
